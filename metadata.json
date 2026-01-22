@@ -1,0 +1,5 @@
+{
+  "name": "Quran Memorization Helper",
+  "description": "An application to assist in memorizing the Holy Quran by providing ayah-by-ayah playback, repetition features, and AI-powered tafsir (exegesis) to aid in understanding.",
+  "requestFramePermissions": []
+}
