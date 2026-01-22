@@ -29,7 +29,6 @@ export async function getTafsirForAyahs(ayahsText: string, surahName: string, st
             contents: prompt,
         });
 
-        // FIX: The response object itself should be checked, not response.text
         if (response && response.text) {
             return response.text;
         } else {

@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import type { Ayah } from '../types';
 import { RepeatMode } from '../types';
 import { PlayIcon, PauseIcon, SkipNextIcon, SkipPreviousIcon, RepeatIcon, RepeatOneIcon, BookOpenIcon } from './IconComponents';
+import { Spinner } from './Spinner';
 
 interface QuranPlayerProps {
     ayahs: Ayah[];
@@ -15,7 +16,7 @@ interface QuranPlayerProps {
     audioRef: React.RefObject<HTMLAudioElement>;
     onPlayPause: () => void;
     onAudioEnded: () => void;
-    onToggleTafsir: () => void;
+    onGetTafsir: () => void;
     isTafsirVisible: boolean;
     isTafsirLoading: boolean;
     tafsir: string;
@@ -32,7 +33,7 @@ export const QuranPlayer: React.FC<QuranPlayerProps> = ({
     audioRef,
     onPlayPause,
     onAudioEnded,
-    onToggleTafsir,
+    onGetTafsir,
     isTafsirVisible,
     isTafsirLoading,
     tafsir
@@ -91,32 +92,37 @@ export const QuranPlayer: React.FC<QuranPlayerProps> = ({
                 <p className="text-lg text-stone-500 mb-4">
                     الآية {currentAyah.numberInSurah} من {ayahs.length}
                 </p>
-                <p 
-                  className="arabic-text text-3xl md:text-4xl lg:text-5xl leading-loose md:leading-loose lg:leading-loose text-stone-800 px-4 py-8 min-h-[150px] flex items-center justify-center"
-                  aria-live="polite"
-                >
+                <p className="arabic-text text-3xl md:text-4xl lg:text-5xl leading-loose md:leading-loose lg:leading-loose text-stone-800 px-4 py-8 min-h-[150px]">
                     {currentAyah.text}
                 </p>
 
                 <audio ref={audioRef} onEnded={onAudioEnded} onPlay={() => setIsPlaying(true)} onPause={() => setIsPlaying(false)} />
                 
                 <div className="flex items-center justify-center space-x-6 rtl:space-x-reverse mt-6">
-                    <button onClick={toggleRepeatMode} title="تغيير وضع التكرار" className="p-2 rounded-full hover:bg-stone-100 transition-colors">
+                    <button onClick={toggleRepeatMode} className="p-2 rounded-full hover:bg-stone-100 transition-colors">
                        <RepeatButton />
                     </button>
-                    <button onClick={handlePrevious} disabled={currentAyahIndex === 0} title="الآية السابقة" className="p-2 rounded-full hover:bg-stone-100 transition-colors text-stone-700 disabled:text-stone-300 disabled:cursor-not-allowed">
+                    <button onClick={handlePrevious} disabled={currentAyahIndex === 0} className="p-2 rounded-full hover:bg-stone-100 transition-colors text-stone-700 disabled:text-stone-300 disabled:cursor-not-allowed">
                         <SkipPreviousIcon />
                     </button>
-                    <button onClick={onPlayPause} title={isPlaying ? "إيقاف مؤقت" : "تشغيل"} className="bg-teal-600 text-white rounded-full p-4 hover:bg-teal-700 focus:outline-none focus:ring-4 focus:ring-teal-300 transition-all">
+                    <button onClick={onPlayPause} className="bg-teal-600 text-white rounded-full p-4 hover:bg-teal-700 focus:outline-none focus:ring-4 focus:ring-teal-300 transition-all">
                         {isPlaying ? <PauseIcon /> : <PlayIcon />}
                     </button>
-                    <button onClick={handleNext} disabled={currentAyahIndex === ayahs.length - 1} title="الآية التالية" className="p-2 rounded-full hover:bg-stone-100 transition-colors text-stone-700 disabled:text-stone-300 disabled:cursor-not-allowed">
+                    <button onClick={handleNext} disabled={currentAyahIndex === ayahs.length - 1} className="p-2 rounded-full hover:bg-stone-100 transition-colors text-stone-700 disabled:text-stone-300 disabled:cursor-not-allowed">
                         <SkipNextIcon />
                     </button>
-                    <button onClick={onToggleTafsir} title="إظهار/إخفاء التفسير" className="p-2 rounded-full hover:bg-stone-100 transition-colors">
-                        <BookOpenIcon className={`w-6 h-6 transition-colors ${isTafsirVisible ? 'text-teal-500' : 'text-stone-500'}`}/>
-                    </button>
+                    <div className="w-6 h-6"></div> {/* Spacer to balance repeat button */}
                 </div>
+            </div>
+
+            <div className="mt-6 text-center">
+                <button 
+                    onClick={onGetTafsir}
+                    className="bg-amber-500 text-white font-bold py-3 px-8 rounded-lg hover:bg-amber-600 focus:outline-none focus:ring-4 focus:ring-amber-300 transition-all duration-300 ease-in-out inline-flex items-center"
+                >
+                    <BookOpenIcon />
+                    {isTafsirVisible ? 'إخفاء التفسير' : 'اطلب التفسير بالذكاء الاصطناعي'}
+                </button>
             </div>
             
             {isTafsirVisible && (
