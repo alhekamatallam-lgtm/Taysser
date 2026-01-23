@@ -1,9 +1,8 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { Ayah } from '../types';
 import { RepeatMode } from '../types';
 import { PlayIcon, PauseIcon, SkipNextIcon, SkipPreviousIcon, RepeatIcon, RepeatOneIcon, BookOpenIcon } from './IconComponents';
-import { Spinner } from './Spinner';
 
 interface QuranPlayerProps {
     ayahs: Ayah[];
@@ -16,7 +15,7 @@ interface QuranPlayerProps {
     audioRef: React.RefObject<HTMLAudioElement>;
     onPlayPause: () => void;
     onAudioEnded: () => void;
-    onGetTafsir: () => void;
+    onToggleTafsir: () => void;
     isTafsirVisible: boolean;
     isTafsirLoading: boolean;
     tafsir: string;
@@ -33,19 +32,20 @@ export const QuranPlayer: React.FC<QuranPlayerProps> = ({
     audioRef,
     onPlayPause,
     onAudioEnded,
-    onGetTafsir,
+    onToggleTafsir,
     isTafsirVisible,
     isTafsirLoading,
     tafsir
 }) => {
-    
+    const [audioLoading, setAudioLoading] = useState(false);
     const currentAyah = ayahs[currentAyahIndex];
 
     useEffect(() => {
         if (audioRef.current && currentAyah) {
+            setAudioLoading(true);
             audioRef.current.src = currentAyah.audio;
             if (isPlaying) {
-                audioRef.current.play().catch(e => console.error("Error playing audio:", e));
+                audioRef.current.play().catch(e => console.error("Play prevented:", e));
             }
         }
     }, [currentAyah, audioRef, isPlaying]);
@@ -64,77 +64,86 @@ export const QuranPlayer: React.FC<QuranPlayerProps> = ({
     
     const toggleRepeatMode = () => {
         const modes = [RepeatMode.None, RepeatMode.Range, RepeatMode.Ayah];
-        const currentIndex = modes.indexOf(repeatMode);
-        const nextIndex = (currentIndex + 1) % modes.length;
-        setRepeatMode(modes[nextIndex]);
-    };
-
-    const RepeatButton = () => {
-        switch (repeatMode) {
-            case RepeatMode.Ayah:
-                return <RepeatOneIcon active={true} />;
-            case RepeatMode.Range:
-                return <RepeatIcon active={true} />;
-            default:
-                return <RepeatIcon />;
-        }
-    };
-
-    const formatTafsir = (text: string) => {
-      return text.split('\n').map((line, index) => (
-        <p key={index} className="mb-4 leading-relaxed">{line}</p>
-      ));
+        const nextMode = modes[(modes.indexOf(repeatMode) + 1) % modes.length];
+        setRepeatMode(nextMode);
     };
 
     return (
-        <div className="mt-8">
-            <div className="bg-white p-6 rounded-xl shadow-lg border border-stone-200 text-center">
-                <p className="text-lg text-stone-500 mb-4">
+        <div className="mt-8 animate-fade-in">
+            <div className="bg-white p-6 md:p-10 rounded-[2rem] shadow-xl border border-stone-200 text-center relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4">
+                    <span className="text-xs font-bold text-teal-600 bg-teal-50 px-3 py-1 rounded-full border border-teal-100">
+                        {repeatMode === RepeatMode.Ayah ? 'تكرار الآية' : repeatMode === RepeatMode.Range ? 'تكرار النطاق' : 'تشغيل متتالي'}
+                    </span>
+                </div>
+
+                <p className="text-sm font-medium text-stone-400 mb-6 uppercase tracking-widest">
                     الآية {currentAyah.numberInSurah} من {ayahs.length}
                 </p>
-                <p className="arabic-text text-3xl md:text-4xl lg:text-5xl leading-loose md:leading-loose lg:leading-loose text-stone-800 px-4 py-8 min-h-[150px]">
-                    {currentAyah.text}
-                </p>
-
-                <audio ref={audioRef} onEnded={onAudioEnded} onPlay={() => setIsPlaying(true)} onPause={() => setIsPlaying(false)} />
                 
-                <div className="flex items-center justify-center space-x-6 rtl:space-x-reverse mt-6">
-                    <button onClick={toggleRepeatMode} className="p-2 rounded-full hover:bg-stone-100 transition-colors">
-                       <RepeatButton />
+                <div className="relative min-h-[180px] flex items-center justify-center">
+                    <p className="arabic-text text-3xl md:text-5xl lg:text-6xl text-stone-800 px-2 leading-[1.8] md:leading-[1.8]">
+                        {currentAyah.text}
+                    </p>
+                </div>
+
+                <audio 
+                    ref={audioRef} 
+                    onEnded={onAudioEnded} 
+                    onPlay={() => setIsPlaying(true)} 
+                    onPause={() => setIsPlaying(false)}
+                    onCanPlay={() => setAudioLoading(false)}
+                    onWaiting={() => setAudioLoading(true)}
+                />
+                
+                <div className="flex items-center justify-center gap-4 md:gap-8 mt-10">
+                    <button onClick={toggleRepeatMode} className="p-3 rounded-full hover:bg-stone-100 transition-colors" title="وضع التكرار">
+                       {repeatMode === RepeatMode.Ayah ? <RepeatOneIcon active /> : <RepeatIcon active={repeatMode === RepeatMode.Range} />}
                     </button>
-                    <button onClick={handlePrevious} disabled={currentAyahIndex === 0} className="p-2 rounded-full hover:bg-stone-100 transition-colors text-stone-700 disabled:text-stone-300 disabled:cursor-not-allowed">
+                    
+                    <button onClick={handlePrevious} disabled={currentAyahIndex === 0} className="p-3 rounded-full hover:bg-stone-100 disabled:opacity-30 transition-all">
                         <SkipPreviousIcon />
                     </button>
-                    <button onClick={onPlayPause} className="bg-teal-600 text-white rounded-full p-4 hover:bg-teal-700 focus:outline-none focus:ring-4 focus:ring-teal-300 transition-all">
-                        {isPlaying ? <PauseIcon /> : <PlayIcon />}
+
+                    <button 
+                        onClick={onPlayPause} 
+                        className={`relative w-20 h-20 rounded-full flex items-center justify-center text-white shadow-2xl transform active:scale-95 transition-all ${isPlaying ? 'bg-stone-800' : 'bg-teal-600 hover:bg-teal-700'}`}
+                    >
+                        {audioLoading ? (
+                            <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : isPlaying ? (
+                            <PauseIcon className="w-10 h-10" />
+                        ) : (
+                            <PlayIcon className="w-10 h-10" />
+                        )}
                     </button>
-                    <button onClick={handleNext} disabled={currentAyahIndex === ayahs.length - 1} className="p-2 rounded-full hover:bg-stone-100 transition-colors text-stone-700 disabled:text-stone-300 disabled:cursor-not-allowed">
+
+                    <button onClick={handleNext} disabled={currentAyahIndex === ayahs.length - 1} className="p-3 rounded-full hover:bg-stone-100 disabled:opacity-30 transition-all">
                         <SkipNextIcon />
                     </button>
-                    <div className="w-6 h-6"></div> {/* Spacer to balance repeat button */}
-                </div>
-            </div>
 
-            <div className="mt-6 text-center">
-                <button 
-                    onClick={onGetTafsir}
-                    className="bg-amber-500 text-white font-bold py-3 px-8 rounded-lg hover:bg-amber-600 focus:outline-none focus:ring-4 focus:ring-amber-300 transition-all duration-300 ease-in-out inline-flex items-center"
-                >
-                    <BookOpenIcon />
-                    {isTafsirVisible ? 'إخفاء التفسير' : 'اطلب التفسير بالذكاء الاصطناعي'}
-                </button>
+                    <button onClick={onToggleTafsir} className={`p-3 rounded-full transition-all ${isTafsirVisible ? 'bg-teal-50 text-teal-600' : 'hover:bg-stone-100'}`} title="التفسير">
+                        <BookOpenIcon className="w-7 h-7" />
+                    </button>
+                </div>
             </div>
             
             {isTafsirVisible && (
-                <div className="mt-6 bg-white p-6 rounded-xl shadow-lg border border-stone-200 animate-fade-in">
-                    <h3 className="text-xl font-bold mb-4 text-teal-700 arabic-text">تفسير الآيات</h3>
+                <div className="mt-6 bg-white p-8 rounded-[2rem] shadow-lg border border-teal-100 animate-fade-in">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="w-2 h-8 bg-teal-500 rounded-full"></div>
+                        <h3 className="text-2xl font-bold text-teal-900">بصيرة الآيات</h3>
+                    </div>
                     {isTafsirLoading ? (
-                        <div className="flex justify-center items-center h-40">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
+                        <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                            <div className="w-12 h-12 border-4 border-teal-100 border-t-teal-600 rounded-full animate-spin"></div>
+                            <p className="text-teal-600 animate-pulse font-medium">يتدبر المساعد في معاني الآيات...</p>
                         </div>
                     ) : (
-                        <div className="text-stone-700 arabic-text text-lg leading-loose prose max-w-none">
-                            {formatTafsir(tafsir)}
+                        <div className="text-stone-700 arabic-text text-xl leading-[2] md:leading-[2.2] space-y-4">
+                            {tafsir.split('\n').filter(line => line.trim()).map((line, i) => (
+                                <p key={i}>{line}</p>
+                            ))}
                         </div>
                     )}
                 </div>
